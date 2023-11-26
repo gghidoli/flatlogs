@@ -31,7 +31,12 @@
 #ifndef flatlogs_logPriority_hpp
 #define flatlogs_logPriority_hpp
 
-#include <mx/ioutils/stringUtils.hpp>
+#include <limits>
+#include <string>
+#include <algorithm>
+//#include <sstream>
+//#include <vector>
+
 
 #include "logDefs.hpp"
 
