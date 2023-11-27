@@ -13,8 +13,6 @@
 #include "types/generated/git_state_generated.h"
 #include "types/flatbuffer_log.hpp"
 
-////////////////////////////////////////////////////////////////////////
-/// todo:  convert tests to Catch2
 const std::string gsName{"gsName"};
 const std::string gsSha1{"gsSha1"};
 

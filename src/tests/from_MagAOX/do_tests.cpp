@@ -12,8 +12,6 @@
 #include "types/generated/git_state_generated.h"
 #include "types/flatbuffer_log.hpp"
 
-////////////////////////////////////////////////////////////////////////
-/// todo:  convert tests to Catch2
 int
 main(int argc, char** argv)
 {
