@@ -42,17 +42,17 @@ struct telem_fxngen : public flatbuffer_log
                 const double & C1vpp,       ///< [in] Channel 1 P2P voltage [V]
                 const double & C1ofst,      ///< [in] Channel 1 offset [V]
                 const double & C1phse,      ///< [in] Channel 1 phase [deg]
-                const double & C1wdth,      ///< [in] Channel 1 width [s]
                 const std::string & C1wvtp, ///< [in] Channel 1 wavetype (SINE or DC)
                 const uint8_t & C2outp,     ///< [in] Channel 2 output status
                 const double & C2freq,      ///< [in] Channel 2 frequency [Hz]
                 const double & C2vpp,       ///< [in] Channel 2 P2P voltage [V]
                 const double & C2ofst,      ///< [in] Channel 2 offset [V]
                 const double & C2phse,      ///< [in] Channel 2 phase [deg]
-                const double & C2wdth,      ///< [in] Channel 2 width [s]
                 const std::string & C2wvtp, ///< [in] Channel 2 wavetype  (SINE or DC) 
                 const uint8_t & C1sync,     ///< [in] Channel 1 sync status
-                const uint8_t & C2sync      ///< [in] Channel 2 sync status
+                const uint8_t & C2sync,      ///< [in] Channel 2 sync status
+                const double & C1wdth,      ///< [in] Channel 1 width [s]
+                const double & C2wdth      ///< [in] Channel 2 width [s]
               )
       {
          uint8_t  _C1wvtp = 3,  _C2wvtp = 3;

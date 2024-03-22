@@ -12,6 +12,7 @@
 
 #include "generated/telem_observer_generated.h"
 #include "flatbuffer_log.hpp"
+#include "../logMeta.hpp"
 
 #include <cmath>
 
