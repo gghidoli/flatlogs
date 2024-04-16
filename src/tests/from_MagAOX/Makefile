@@ -1,55 +1,7 @@
 ########################################################################
 ### Hide commands
 AT=@
-# TODO use generated_tests/*_tests.cpp eventually.
-# do this until all files are working.
-GEN_TEST_FILES = \
-generated_tests/config_log_generated_tests.cpp \
-generated_tests/git_state_generated_tests.cpp \
-generated_tests/indidriver_start_generated_tests.cpp \
-generated_tests/indidriver_stop_generated_tests.cpp \
-generated_tests/loop_closed_generated_tests.cpp \
-generated_tests/loop_open_generated_tests.cpp \
-generated_tests/loop_paused_generated_tests.cpp \
-generated_tests/observer_generated_tests.cpp \
-generated_tests/ocam_temps_generated_tests.cpp \
-generated_tests/outlet_channel_state_generated_tests.cpp \
-generated_tests/outlet_state_generated_tests.cpp \
-generated_tests/pico_channel_generated_tests.cpp \
-generated_tests/saving_start_generated_tests.cpp \
-generated_tests/saving_stop_generated_tests.cpp \
-generated_tests/state_change_generated_tests.cpp \
-generated_tests/telem_blockgains_generated_tests.cpp \
-generated_tests/telem_chrony_stats_generated_tests.cpp \
-generated_tests/telem_chrony_status_generated_tests.cpp \
-generated_tests/telem_cooler_generated_tests.cpp \
-generated_tests/telem_coreloads_generated_tests.cpp \
-generated_tests/telem_coretemps_generated_tests.cpp \
-generated_tests/telem_dmspeck_generated_tests.cpp \
-generated_tests/telem_dmmodes_generated_tests.cpp \
-generated_tests/telem_drivetemps_generated_tests.cpp \
-generated_tests/telem_fgtimings_generated_tests.cpp \
-generated_tests/telem_loopgain_generated_tests.cpp \
-generated_tests/telem_observer_generated_tests.cpp \
-generated_tests/telem_pico_generated_tests.cpp \
-generated_tests/telem_rhusb_generated_tests.cpp \
-generated_tests/telem_saving_generated_tests.cpp \
-generated_tests/telem_saving_state_generated_tests.cpp \
-generated_tests/telem_stage_generated_tests.cpp \
-generated_tests/telem_telcat_generated_tests.cpp \
-generated_tests/telem_teldata_generated_tests.cpp \
-generated_tests/telem_telenv_generated_tests.cpp \
-generated_tests/telem_telpos_generated_tests.cpp \
-generated_tests/telem_telsee_generated_tests.cpp \
-generated_tests/telem_telvane_generated_tests.cpp \
-generated_tests/telem_temps_generated_tests.cpp \
-generated_tests/telem_usage_generated_tests.cpp \
-generated_tests/telem_zaber_generated_tests.cpp \
-generated_tests/text_log_generated_tests.cpp \
-generated_tests/ttmmod_params_generated_tests.cpp \
-generated_tests/user_log_generated_tests.cpp
-
-
+GEN_TEST_FILES = generated_tests/*_generated_tests.cpp
 
 # STILL TODO
 # generated_tests/telem_fxngen_generated_tests.cpp \

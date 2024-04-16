@@ -2,41 +2,7 @@
 
 '''
 Generate Catch2 tests from template.
-
-Required (and handled by script):
- python >= 3.9
- jinja2
-
-Questions/Notes:
-- make vectors, ints have values - random
-
-- Added #include "../logMeta.hpp" to (would not compile without it):
-    - telem_observer.hpp
-    - telem_loopgain.hpp
-    - telem_fgtimings.hpp
-    - telem_dmspeck.hpp
-    - telem_dmmodes.hpp 
-
-- This script detects a 'base' type if it does not have eventCode and defaultLevel
-  in the .hpp file. It is noted in these files that they cannot be used directly.
-  On the first iteration of these files, the base types and the associated inherited
-  types are found. Then, the script generates the test files for these inherited 
-  types. The base types I found are:
-    - empty_log
-    - flatbuffer_log
-    - software_log
-    - string_log
-    - saving_state_change (not explicitly noted, but infered)
-  I assume that these base types do not require tests.
-
-- To handle names being different in the .fbs vs. .hpp file, I read the both the
-  .fbs file names and .hpp names and use them when appropriate. 
-  The caveat to this is that the order in which those names appear must correspond
-  to one another. The only file this became an issue was telem_fxngen.hpp. The field 
-  names were different between files. This was an issue when calling the constructor.
-  To fix it, I re-ordered the messageT field names in telem_fxngen.hpp to match
-  telem_fxngen.fbs.
-
+See README.md for more details.
 '''
 
 import os
@@ -118,10 +84,10 @@ def getSchemaFieldInfo(fname : str) -> tuple[str, tuple] :
     return schemaTableName, tuple(schemaFieldInfo)
 
 '''
-Very rudimentary way to check that the types in .fbs correspond
-to the field cType (from.hpp file).
-If not, the behavior for comparing the fb values in the tests is undefined,
-and action beyond this generator will need to be taken.
+Quick check that the types in .fbs correspond, mainly strings match to strings, 
+and vectors to vectors.
+If they do not correspond, the behavior for comparing the fb values in the tests
+is undefined, and action beyond this generator will need to be taken.
 '''
 def typesCorrespond(fbsType : str, cType : str) -> bool:
     if ("[" in fbsType) or ("vector" in cType):
@@ -204,7 +170,10 @@ def makeTestInfoDict(hppFname : str, baseTypesDict : dict) -> dict:
         return None # don't render me yet!
 
 
-    returnInfo["messageTypes"] = getMessageFieldInfo(messageStructIdxs, headerLines, schemaFieldInfo)
+    returnInfo["messageTypes"], error = getMessageFieldInfo(messageStructIdxs, headerLines, schemaFieldInfo)
+    if error:
+        return None # error, don't render
+    
     return returnInfo
 
 '''
@@ -291,6 +260,7 @@ the type(s) and name(s) of field(s) in a message:
 '''
 def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo : tuple):
     msgTypesList = []
+    error = False
 
     # extract log field types and names
     for i in range(len(messageStructIdxs)):
@@ -343,8 +313,9 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
                     fieldDict["schemaType"] = schemaFieldInfo[fieldCount][1]
                     # check schemaType correlates to type in .hpp file
                     if not typesCorrespond(fieldDict["schemaType"], fieldDict["type"]):
-                        print(f"  ERROR undefined behavior: types for field {fieldDict["name"]} do not correlate.")
-                        print(f"  schemaType: {fieldDict["schemaType"]}, type: {fieldDict["type"]}")
+                        print(f"  ERROR undefined behavior: types for field '{fieldDict["name"]}' do not correlate.")
+                        print(f"    schemaType: {fieldDict["schemaType"]}, type: {fieldDict["type"]}")
+                        error = True
                     fieldCount += 1
                 
                 fieldDict["testVal"] = makeTestVal(fieldDict)
@@ -356,7 +327,7 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
 
         msgTypesList.append(msgsFieldsList)
 
-    return msgTypesList
+    return msgTypesList, error
 
 def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : str) -> dict:
     returnInfo = dict()
@@ -385,8 +356,11 @@ def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : s
     schemaTableName, schemaFieldInfo = getSchemaFieldInfo(baseName)
 
     returnInfo["schemaTableName"] = schemaTableName
-    returnInfo["messageTypes"] = [[]] if "empty_log" in baseName else \
-                                getMessageFieldInfo(messageStructIdxs, baseHLines, schemaFieldInfo)
+    msgFieldInfo, error = getMessageFieldInfo(messageStructIdxs, baseHLines, schemaFieldInfo)
+    if error:
+        return None # error, don't render
+    
+    returnInfo["messageTypes"] = [[]] if "empty_log" in baseName else msgFieldInfo
 
     return returnInfo
 
