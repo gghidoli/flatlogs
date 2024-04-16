@@ -1,45 +1,67 @@
-'''
- use jinja2 to generate catch tests
+#!/bin/env python3
 
-PRE_REQS:
+'''
+Generate Catch2 tests from template.
+
+Required (and handled by script):
  python >= 3.9
  jinja2
 
-TODO:
-- Maybe make a shell script to kick it off, check for install, install if not there,
-  and then run the generator?
-- In that script you could check the available version of python, and the library,
-  and anything else you'll need.
-- Add test generation to makefile
-
-Questions:
+Questions/Notes:
 - make vectors, ints have values - random
-- no tests needed for base types?
-    baseTypes = {"empty_log", "flatbuffer_log", "software_log", "string_log"}
-    + saving_state_change, from what I can tell
 
-don't plan on using, but don't want to delete again
-# baseTypes = {"empty_log", "flatbuffer_log", "software_log", "string_log"}
-# if [baseType for baseType in baseTypes if (baseType in type)] != []:
-    #     continue
+- Added #include "../logMeta.hpp" to (would not compile without it):
+    - telem_observer.hpp
+    - telem_loopgain.hpp
+    - telem_fgtimings.hpp
+    - telem_dmspeck.hpp
+    - telem_dmmodes.hpp 
+
+- This script detects a 'base' type if it does not have eventCode and defaultLevel
+  in the .hpp file. It is noted in these files that they cannot be used directly.
+  On the first iteration of these files, the base types and the associated inherited
+  types are found. Then, the script generates the test files for these inherited 
+  types. The base types I found are:
+    - empty_log
+    - flatbuffer_log
+    - software_log
+    - string_log
+    - saving_state_change (not explicitly noted, but infered)
+  I assume that these base types do not require tests.
+
+- To handle names being different in the .fbs vs. .hpp file, I read the both the
+  .fbs file names and .hpp names and use them when appropriate. 
+  The caveat to this is that the order in which those names appear must correspond
+  to one another. The only file this became an issue was telem_fxngen.hpp. The field 
+  names were different between files. This was an issue when calling the constructor.
+  To fix it, I re-ordered the messageT field names in telem_fxngen.hpp to match
+  telem_fxngen.fbs.
 
 '''
 
-import jinja2
-import glob
-import json
 import os
+import sys
+import subprocess
+import glob
 import re
 import pathlib
+import string
+import random
 
-#!/bin/env python3
+# check jinja2 is installed. install it if not
+try:
+    import jinja2
+except ModuleNotFoundError:
+    print("module 'Jinja2' is not installed. Installing Jinja2...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'Jinja2'])
+    import jinja2
+
 
 '''
 Get base type of log. This is needed for log types that inherit from a base type
 that specfies the messageT(...)
 '''
-def getBaseType(lines) -> str:
-
+def getBaseType(lines : list) -> str:
     # use regex to find #include "<baseType>.hpp"
     baseType = ""
     for line in lines:
@@ -52,11 +74,8 @@ def getBaseType(lines) -> str:
 
 '''
 NOTE: This relies on name order in .fbs schema and .hpp files to be the same.
-TODO: add this requirement to the README. There needs to be something to help
-the generator in this situation. Alternatively, we could require
-the fields be the same name as the fbs. but the former is probably better.
 '''
-def getSchemaFieldInfo(fname) -> tuple[str, tuple] :
+def getSchemaFieldInfo(fname : str) -> tuple[str, tuple] :
     schemaFolderPath = "./types/schemas/"
     schemaFolderPath = os.path.abspath(
         os.path.join(os.path.dirname(__file__), schemaFolderPath)
@@ -104,7 +123,7 @@ to the field cType (from.hpp file).
 If not, the behavior for comparing the fb values in the tests is undefined,
 and action beyond this generator will need to be taken.
 '''
-def typesCorrespond(fbsType, cType) -> bool:
+def typesCorrespond(fbsType : str, cType : str) -> bool:
     if ("[" in fbsType) or ("vector" in cType):
         return ("[" in fbsType) and ("vector" in cType)
 
@@ -114,13 +133,11 @@ def typesCorrespond(fbsType, cType) -> bool:
     return True
     
 
-
-
 '''
 Check it is not a base log type.
 Must have eventCode and defaultLevel
 '''
-def isValidLogType(lines) -> bool:
+def isValidLogType(lines : list) -> bool:
     hasEventCode = False
     hasDefaultLevel = False
     for line in lines:
@@ -190,6 +207,9 @@ def makeTestInfoDict(hppFname : str, baseTypesDict : dict) -> dict:
     returnInfo["messageTypes"] = getMessageFieldInfo(messageStructIdxs, headerLines, schemaFieldInfo)
     return returnInfo
 
+'''
+Parse out field type and name from string
+'''
 def getTypeAndName(lineParts : list) -> tuple[str, str]:
 
     typeIdxStart = 1 if (lineParts[0] == "const") else 0
@@ -221,6 +241,48 @@ def hasGeneratedHFile(logName : str) -> bool:
         return True
 
     return False
+
+def getRandInt(type : str) -> int:
+    unsigned = True if "uint" in type else False
+
+    sizeBits = 8 # default size 8 bits
+    if "_t" in type:
+        typeParts = type.split("_t")
+        if int(typeParts[0][-1]) != 8:
+            sizeBits = int(typeParts[0][-2])
+    
+    if not unsigned:
+        sizeBits -= 1
+
+    max = (2 ** sizeBits) - 1
+    min = 0 if unsigned else (0 - max - 1)
+
+    return random.randint(min, max)
+
+def getRandValFromType(fieldType : str) -> str:
+    if "int" in fieldType:
+        return str(getRandInt(fieldType))
+    elif "string" in fieldType or "char *" in fieldType:
+        randString = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+        return f'"{randString}"'
+    elif "bool" in fieldType:
+        return "true"
+    elif "float" in fieldType:
+        return str(round(random.random(), 5))
+    elif "double" in fieldType:
+        return str(round(random.random(), 10))
+    else:
+        return "{}"
+
+
+def makeTestVal(fieldDict : dict) -> str:
+    if "vector" in fieldDict["type"]:
+        vals = [ getRandValFromType(fieldDict["vectorType"]) for i in range(10)]
+        return f"{{ {",".join(vals)} }}"
+
+    return getRandValFromType(fieldDict["type"])
+    
+
 
 '''
 make 2d array. each inner array contains dictionaries corresponding to
@@ -284,6 +346,8 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
                         print(f"  ERROR undefined behavior: types for field {fieldDict["name"]} do not correlate.")
                         print(f"  schemaType: {fieldDict["schemaType"]}, type: {fieldDict["type"]}")
                     fieldCount += 1
+                
+                fieldDict["testVal"] = makeTestVal(fieldDict)
 
                 # add field dict to list of fields
                 msgsFieldsList.append(fieldDict)
@@ -294,7 +358,7 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
 
     return msgTypesList
 
-def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : str):
+def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : str) -> dict:
     returnInfo = dict()
 
     baseFilePath = os.path.join(typesFolderPath, f"{baseName}.hpp")
@@ -329,9 +393,14 @@ def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : s
 
 
 def main():
+    # check python version >= 3.9
+    if sys.version_info[0] < 3 or sys.version_info[1] < 9:
+        print("Error: Python version must be >= 3.9")
+        exit(0)
+
     # load template
     env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(searchpath="./")
+        loader = jinja2.FileSystemLoader(searchpath="./")
     )
     env.trim_blocks = True
     env.lstrip_blocks = True
@@ -348,11 +417,11 @@ def main():
     generatedTestsFolderPath = os.path.abspath(
         os.path.join(os.path.dirname(__file__), generatedTestsFolderPath)
     )
+
     # make directory if it doesn't exist
     pathlib.Path(generatedTestsFolderPath).mkdir(exist_ok=True)
     oldFiles = glob.glob(os.path.join(generatedTestsFolderPath, "*"))
     for file in oldFiles:
-        # print(f"deleting {file}")
         os.remove(file)
 
     types = os.listdir(typesFolderPath)
