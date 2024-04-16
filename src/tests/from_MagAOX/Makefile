@@ -8,7 +8,6 @@ GEN_TEST_FILES = generated_tests/*_generated_tests.cpp
 # generated_tests/telem_stdcam_generated_tests.cpp \
 # generated_tests/software_log_generated_tests.cpp
 
-
 ########################################################################
 ### Generate code, run tests
 all: generated/binarySchemata.inc do_catch2_test do_test
