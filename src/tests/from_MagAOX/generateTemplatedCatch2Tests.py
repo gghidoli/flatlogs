@@ -54,13 +54,26 @@ def getSchemaFieldInfo(fname : str) -> tuple[str, tuple] :
     schemaFile = open(schemaFilePath, "r")
 
     schemaFieldInfo = []
+    subTables = dict() # dict where key is sub-table name, value is [(fieldname, type)...]
+    curSubTable = None
     inTable = False
     schemaTableName = ""
     for line in schemaFile:
         if "table" in line:
-            line = line.strip().split(" ")
-            tableIdx = line.index("table")
-            schemaTableName =  line[tableIdx + 1]
+            # check if `table <log_type>_fb`
+            match = re.search(r'^table [a-zA-Z_]*_fb', line)
+            if match != None:
+                line = line.strip().split()
+                tableIdx = line.index("table")
+                schemaTableName =  line[tableIdx + 1]
+            # otherwise it is a sub-table
+            else:
+                line = line.strip().split()
+                subNameIdx = line.index("table")
+                subName =  line[subNameIdx + 1]
+                subTables[subName] = []
+                curSubTable = subName # we are in a sub-table of the schema
+
         if not inTable and "{" in line:
             inTable = True
             continue
@@ -72,16 +85,36 @@ def getSchemaFieldInfo(fname : str) -> tuple[str, tuple] :
 
             if ("}" in line):
                 inTable = False
+                curSubTable = None
                 continue
 
             if (line != ""):
                 lineParts = line.strip().rstrip(";").split(":")
                 name = lineParts[0]
-                type = lineParts[1]
-                schemaFieldInfo.append((name, type))
+                type = lineParts[1].split()[0]
+
+                if curSubTable is not None:
+                    # add to subtable dict for now, will be added in later
+                    subTables[curSubTable].append((name, type))
+                else:
+                    schemaFieldInfo.append((name, type))
                 continue
 
-    return schemaTableName, tuple(schemaFieldInfo)
+    if len(subTables) == 0:
+        return schemaTableName, tuple(schemaFieldInfo)
+    
+
+    # go through sub tables and add them in
+    newSchemaFieldInfo = []
+    for field in schemaFieldInfo:
+        fieldType = field[1]
+        if fieldType in subTables.keys():
+               newSchemaFieldInfo.append({field[0] : subTables[fieldType]})
+        else:
+            newSchemaFieldInfo.append(field)
+    # print(newSchemaFieldInfo)
+    return schemaTableName, tuple(newSchemaFieldInfo)
+
 
 '''
 Quick check that the types in .fbs correspond, mainly strings match to strings, 
@@ -228,18 +261,18 @@ def getRandInt(type : str) -> int:
 
     return random.randint(min, max)
 
-def getRandValFromType(fieldType : str) -> str:
-    if "int" in fieldType:
-        return str(getRandInt(fieldType))
+def getRandValFromType(fieldType : str, schemaFieldType = None) -> str:
+    if "bool" in fieldType or (schemaFieldType is not None and "bool" in schemaFieldType):
+        return "1"
     elif "string" in fieldType or "char *" in fieldType:
         randString = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
         return f'"{randString}"'
-    elif "bool" in fieldType:
-        return "true"
+    elif "int" in fieldType:
+        return str(getRandInt(fieldType))
     elif "float" in fieldType:
-        return str(round(random.random(), 5))
+        return str(round(random.random(), 6))
     elif "double" in fieldType:
-        return str(round(random.random(), 10))
+        return str(round(random.random(), 14))
     else:
         return "{}"
 
@@ -249,6 +282,9 @@ def makeTestVal(fieldDict : dict) -> str:
         vals = [ getRandValFromType(fieldDict["vectorType"]) for i in range(10)]
         return f"{{ {",".join(vals)} }}"
 
+    if "schemaType" in fieldDict:
+        return getRandValFromType(fieldDict["type"], fieldDict["schemaType"])
+    
     return getRandValFromType(fieldDict["type"])
     
 
@@ -261,6 +297,7 @@ the type(s) and name(s) of field(s) in a message:
 def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo : tuple):
     msgTypesList = []
     error = False
+    subTableDictIndex = 0
 
     # extract log field types and names
     for i in range(len(messageStructIdxs)):
@@ -289,7 +326,7 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
             indexEnd = line.find("//") if "//" in line else len(line)
             line = line[indexStart:indexEnd]
 
-            lineParts =  [part.strip().split(" ") for part in line.strip().rstrip(",").split(",")]
+            lineParts =  [part.strip().split() for part in line.strip().rstrip(",").split(",")]
 
             for field in lineParts:
                 fieldDict = {}
@@ -309,14 +346,28 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
                     fieldDict["vectorType"] = vectorType
 
                 if len(schemaFieldInfo) != 0:
-                    fieldDict["schemaName"] = schemaFieldInfo[fieldCount][0]
-                    fieldDict["schemaType"] = schemaFieldInfo[fieldCount][1]
+                    if isinstance(schemaFieldInfo[fieldCount], tuple):
+                        fieldDict["schemaName"] = schemaFieldInfo[fieldCount][0]
+                        fieldDict["schemaType"] = schemaFieldInfo[fieldCount][1]
+                        fieldCount += 1
+                    else:
+                        # go into dictionary..
+                        subTableName = next(iter(schemaFieldInfo[fieldCount]))
+                        schemaFieldName = schemaFieldInfo[fieldCount][subTableName][subTableDictIndex][0]
+                        schemaFieldType = schemaFieldInfo[fieldCount][subTableName][subTableDictIndex][1]
+                        fieldDict["schemaName"] = f"{subTableName}()->{schemaFieldName}"
+                        fieldDict["schemaType"] = schemaFieldType
+                        subTableDictIndex += 1
+                        if (subTableDictIndex >= len(schemaFieldInfo[fieldCount][subTableName])):
+                            # reset dictionary index if we need to
+                            subTableDictIndex = 0
+                            fieldCount += 1
+                    
                     # check schemaType correlates to type in .hpp file
                     if not typesCorrespond(fieldDict["schemaType"], fieldDict["type"]):
                         print(f"  ERROR undefined behavior: types for field '{fieldDict["name"]}' do not correlate.")
                         print(f"    schemaType: {fieldDict["schemaType"]}, type: {fieldDict["type"]}")
                         error = True
-                    fieldCount += 1
                 
                 fieldDict["testVal"] = makeTestVal(fieldDict)
 
@@ -324,7 +375,13 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
                 msgsFieldsList.append(fieldDict)
 
             structIdx += 1
-
+            
+        # if fieldCount != len(schemaFieldInfo):
+        #     # don't add cases where field count != schema field count
+        #     # only an issue for software_log, not an issue for telem_stdcam
+        #     # print(f"fieldCount={fieldCount} len(schemaFieldInfo)={len(schemaFieldInfo)}")
+        #     # print("HERE")
+        #     continue
         msgTypesList.append(msgsFieldsList)
 
     return msgTypesList, error
@@ -364,11 +421,12 @@ def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : s
 
     return returnInfo
 
-
+def versionAsNumber(major, minor):
+    return (major * 1000 + minor)
 
 def main():
     # check python version >= 3.9
-    if sys.version_info[0] < 3 or sys.version_info[1] < 9:
+    if (versionAsNumber(sys.version_info[0], sys.version_info[1]) < versionAsNumber(3,9)):
         print("Error: Python version must be >= 3.9")
         exit(0)
 

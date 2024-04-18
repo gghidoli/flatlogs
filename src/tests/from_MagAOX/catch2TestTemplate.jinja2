@@ -67,6 +67,7 @@ public:
     L = MagAOX::logger::{{name}}::length({{classVarName}});
 
     // Retrieve the flatbuffer parameters for Catch2 comparison below
+    {# TODO check if field is mapping... #}
     {%for field in msgType %}
     {% if "schemaName" in field %}
     {% set getter = field.schemaName %}
@@ -158,7 +159,7 @@ SCENARIO( "Create {{name}} {{outerLoopI}}", "[a log item]")
             {% elif 'float' in field.type and 'vector' not in field.type %}
             REQUIRE_THAT({{classVarName}}.m_{{field.name}}, Catch::Matchers::WithinAbs({{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}}, 0.00001));
             {% elif 'double' in field.type and 'vector' not in field.type %}
-            REQUIRE_THAT({{classVarName}}.m_{{field.name}}, Catch::Matchers::WithinAbs({{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}}, 0.0000001));
+            REQUIRE_THAT({{classVarName}}.m_{{field.name}}, Catch::Matchers::WithinAbs({{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}}, 0.0000000000001));
             {% else %}
             REQUIRE({{classVarName}}.m_{{field.name}} == {{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}});
             {% endif %}
