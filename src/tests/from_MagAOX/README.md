@@ -8,14 +8,14 @@ Both files should be in the same directory as `types/`.
 ## How To Run
 
 ### Pre-requisites
- 1. Python must be installed with version >= 3.9
+ 1. Python must be installed with version >= 3.9. This is checked by the script.
  2. jinja2 must be installed. The script will check for jinja2 and automatically
     install it if not present. It can be installed manually with the following
     command:
 
     `python3 -m pip install Jinja2`
 
-It is assumed that `mxlib` and its dependencies have already been installed.
+It is assumed that any libraries and dependencies for the flatlog types have already been installed.
 
 ### Generating the tests
 
@@ -45,15 +45,22 @@ Makefile.
 
 ## Notes/Caveats:
 
-- At the start of the generator python script, the previous generated test files
-  will be deleted. Because random values are used for test values, this means
-  values will change between runs of the generator.
+- At the start of the python script, the previous generated test files will be
+  deleted. Because random values are used for test values, the values
+  will change between runs of the generator.
+
+- To handle subtle differences in field names in the .fbs and .hpp files, the
+  generator reads both .fbs file names and .hpp names and uses the correct name
+  when appropriate. The caveat to this is that the order in which those names
+  appear MUST correspond between the two files. The only file this became an
+  issue was `telem_fxngen.hpp`. The order of the field names were different
+  between files. This caused a compiler error when calling the constructor. To
+  fix this, I re-ordered the messageT field names in `telem_fxngen.hpp` to match
+  `telem_fxngen.fbs`.
 
 - This script detects a 'base' type if it does not have eventCode and
   defaultLevel in the .hpp file. It is noted in these log types that they cannot
-  be used directly. On the first iteration through the log types, the base types
-  and their inherited types are found. Then, the script generates the test files
-  for these inherited types. The base types found are:
+  be used directly. The base types found are:
     - empty_log
     - flatbuffer_log
     - software_log
@@ -67,12 +74,12 @@ Makefile.
   telem_stdcam.fbs for a working example. It is expected that the title of the
   root-type table ends with '_fb'.
 
-- telem_stage: the field 'preset' is a double in telem_stage.hpp but a float in
-  tele_stage.fbs. This caused a test to fail due to a loss of precision. One
+- `telem_stage`: the field 'preset' is a double in telem_stage.hpp but a float in
+  telem_stage.fbs. This caused a test to fail due to a loss of precision. One
   option is to generate the test value giving priority to the schema type.
   Another option is to make sure the two types always match.
 
-- Delete generated tests folder when `make clean`?
+- generated tests folder will be deleted with `make really_clean`
 
 - Tests not being generated:
     1. `software_log.hpp`: The field names are different between the .fbs file
@@ -80,31 +87,19 @@ Makefile.
       the generator, but is an issue here because they are several different
       'messageT's within software_log, with different subsets of the fields.
       Because their names are different, the script does not have a way to tell
-      when a field is being used or not being used. 
-
-      One option is to only produce tests for messageT's which have the same
-      number of fields as the table in the .fbs file. This means not all the
-      messageT's in software_log would have tests. Note that this change would
-      apply to all other log types. For example, telem_stdcam has a similar
-      situation, but it is not an issue because the subset of fields do not
-      change the order of types the fields appear in.
-
-      Another option is to have the names between the schema and the hpp file
-      match.
+      when a field is being used or not being used. One option is to only
+      produce tests for messageT's which have the same number of fields as the
+      table in the .fbs file. This means not all the messageT's in software_log
+      would have tests. Note that this change would apply to all other log
+      types. For example, telem_stdcam has a similar situation, but it is not an
+      issue because the subset of fields do not change the order of types the
+      fields appear in. Another option is to have the names between the schema
+      and the hpp file match. This will require added functionality to the
+      script.
 
     2. `telem_fxngen.hpp`: fields `C1wvtp` and `C2wvtp` are uint8s in the fb,
-       but strings in the .hpp file. It looks like the function as a enum. In
-       the generated test, the difference in types causes a compiler error. 
-
-
-- To handle subtle differences in field names in the .fbs and .hpp files, the
-  generator reads both .fbs file names and .hpp names and uses the correct name
-  when appropriate. The caveat to this is that the order in which those names
-  appear MUST correspond between the two files. The only file this became an
-  issue was `telem_fxngen.hpp`. The order of the field names were different
-  between files. This caused a compiler error when calling the constructor. To
-  fix this, I re-ordered the messageT field names in `telem_fxngen.hpp` to match
-  `telem_fxngen.fbs`.
+       but strings in the .hpp file. In the generated test, the different types
+       causes a compiler error. 
 
 - Added #include "../logMeta.hpp" in order to compile:
     - telem_observer.hpp

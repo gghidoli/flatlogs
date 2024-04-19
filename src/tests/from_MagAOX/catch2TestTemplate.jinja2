@@ -1,6 +1,5 @@
 #include <assert.h>
 #include "../catch.hpp"
-{# #include "generated/binarySchemata.inc" TODO: do we need this ? #}
 #include "generated/logCodes.hpp"
 #include "types/{{name}}.hpp"
 {% if hasGeneratedHfile %}
@@ -67,7 +66,6 @@ public:
     L = MagAOX::logger::{{name}}::length({{classVarName}});
 
     // Retrieve the flatbuffer parameters for Catch2 comparison below
-    {# TODO check if field is mapping... #}
     {%for field in msgType %}
     {% if "schemaName" in field %}
     {% set getter = field.schemaName %}
@@ -139,7 +137,7 @@ SCENARIO( "Create {{name}} {{outerLoopI}}", "[a log item]")
 {
     GIVEN("a {{name}} log code")
     {
-        WHEN("TODO: more 'WHEN's ")
+        WHEN("random values for fields")
         {
             // Create flatbuffer
             {{className}}_{{outerLoopI}} {{classVarName}} = {{className}}_{{outerLoopI}}({%- for field in msgType -%}
