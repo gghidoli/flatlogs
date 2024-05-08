@@ -1,4 +1,10 @@
 
 bin/
 src/flatlogcodes
+src/generated
+include/flatbuffers/
+generated_tests/
+src/tests/from_MagAOX/log*.hpp
+app/
+.DS_Store
 

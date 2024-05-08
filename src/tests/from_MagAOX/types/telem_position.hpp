@@ -1,16 +1,14 @@
-/** \file telem_zaber.hpp
-  * \brief The MagAO-X logger telem_zaber log type.
+/** \file telem_position.hpp
+  * \brief The MagAO-X logger telem_position log type.
   * \author Jared R. Males (jaredmales@gmail.com)
   *
   * \ingroup logger_types_files
   * 
-  * History:
-  * - 2018-09-06 created by JRM
   */
-#ifndef logger_types_telem_zaber_hpp
-#define logger_types_telem_zaber_hpp
+#ifndef logger_types_telem_position_hpp
+#define logger_types_telem_position_hpp
 
-#include "generated/telem_zaber_generated.h"
+#include "generated/telem_position_generated.h"
 #include "flatbuffer_log.hpp"
 
 namespace MagAOX
@@ -19,13 +17,13 @@ namespace logger
 {
 
 
-/// Log entry recording zaber stage specific status.
+/// Log entry recording position stage specific status.
 /** \ingroup logger_types
   */
-struct telem_zaber : public flatbuffer_log
+struct telem_position : public flatbuffer_log
 {
    ///The event code
-   static const flatlogs::eventCodeT eventCode = eventCodes::TELEM_ZABER;
+   static const flatlogs::eventCodeT eventCode = eventCodes::TELEM_POSITION;
 
    ///The default level
    static const flatlogs::logPrioT defaultLevel = flatlogs::logPrio::LOG_TELEM;
@@ -36,12 +34,9 @@ struct telem_zaber : public flatbuffer_log
    struct messageT : public fbMessage
    {
       ///Construct from components
-      messageT( const float & pos,     ///<[in] stage position in mm
-                const float & rawPos,  ///<[in] stage raw position, in counts
-                const float & temp     ///<[in] stage temperature
-              )
+      messageT( const float & pos     /**<[in] stage position in mm */ )
       {         
-         auto fp = CreateTelem_zaber_fb(builder, pos, rawPos, temp);
+         auto fp = CreateTelem_position_fb(builder, pos);
          builder.Finish(fp);
       }
 
@@ -53,7 +48,7 @@ struct telem_zaber : public flatbuffer_log
                      )
    {
       auto verifier = flatbuffers::Verifier( static_cast<uint8_t*>(flatlogs::logHeader::messageBuffer(logBuff)), static_cast<size_t>(len));
-      return VerifyTelem_zaber_fbBuffer(verifier);
+      return VerifyTelem_position_fbBuffer(verifier);
    }
 
    ///Get the message formatte for human consumption.
@@ -63,40 +58,23 @@ struct telem_zaber : public flatbuffer_log
    {
       static_cast<void>(len);
 
-      auto fbs = GetTelem_zaber_fb(msgBuffer);
+      auto fbs = GetTelem_position_fb(msgBuffer);
 
-      std::string msg = "[zaber] ";
+      std::string msg = "[position] ";
       
       msg += "pos: ";
       msg += std::to_string(fbs->pos()) + " ";
-      
-      msg += "rawPos: ";
-      msg += std::to_string(fbs->rawPos()) + " ";
-      
-      msg += "temp: ";
-      msg += std::to_string(fbs->temp());
-      
+            
       return msg;
    
    }
 
    static float pos( void * msgBuffer )
    {
-      auto fbs = GetTelem_zaber_fb(msgBuffer);
+      auto fbs = GetTelem_position_fb(msgBuffer);
       return fbs->pos();
    }
 
-   static float rawPos( void * msgBuffer )
-   {
-      auto fbs = GetTelem_zaber_fb(msgBuffer);
-      return fbs->rawPos();
-   }
-
-   static float temp( void * msgBuffer )
-   {
-      auto fbs = GetTelem_zaber_fb(msgBuffer);
-      return fbs->temp();
-   }
 
    /// Get the logMetaDetail for a member by name
    /**
@@ -106,21 +84,19 @@ struct telem_zaber : public flatbuffer_log
    static logMetaDetail getAccessor( const std::string & member /**< [in] the name of the member */ )
    {
       if(     member == "pos") return logMetaDetail({"POS", logMeta::valTypes::Float, logMeta::metaTypes::Continuous, reinterpret_cast<void*>(&pos)});
-      else if(member == "rawPos") return logMetaDetail({"COUNTS", logMeta::valTypes::Float, logMeta::metaTypes::Continuous, reinterpret_cast<void*>(&rawPos)}); 
-      else if(member == "temp") return logMetaDetail({"TEMP", logMeta::valTypes::Float, logMeta::metaTypes::Continuous, reinterpret_cast<void*>(&temp)}); 
       else
       {
-         std::cerr << "No string member " << member << " in telem_zaber\n";
+         std::cerr << "No string member " << member << " in telem_position\n";
          return logMetaDetail();
       }
    }
 
-}; //telem_zaber
+}; //telem_position
 
 
 
 } //namespace logger
 } //namespace MagAOX
 
-#endif //logger_types_telem_zaber_hpp
+#endif //logger_types_telem_position_hpp
 
