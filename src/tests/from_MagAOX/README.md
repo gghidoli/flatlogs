@@ -20,7 +20,7 @@ It is assumed that any libraries and dependencies for the flatlog types have alr
 ### Generating the tests
 
 The generator can be run by either running the python script directly, or
-calling to the Makefile target. They are functionally equivalent.
+calling the Makefile target. They are functionally equivalent.
 
 To run the generator, do:
 
@@ -35,7 +35,7 @@ Upon success, a folder titled `generated_tests` will be created, containing
 generated tests with the title `<log_type>_generated_tests.cpp`.
 
 ### Running the tests
-To run the tests, do:
+To build and run the tests, do:
 
 `make do_catch2_test`
 
@@ -47,16 +47,16 @@ Makefile.
 
 - At the start of the python script, the previous generated test files will be
   deleted. Because random values are used for test values, the values
-  will change between runs of the generator.
+  will change between runs of the generator. Alternatively, a random seed can be provided as a command line option with `-r`. For example:
+
+  `python3 ./generateTemplatedCatch2Tests.py -r 123`
+
 
 - To handle subtle differences in field names in the .fbs and .hpp files, the
   generator reads both .fbs file names and .hpp names and uses the correct name
   when appropriate. The caveat to this is that the order in which those names
-  appear MUST correspond between the two files. The only file this became an
-  issue was `telem_fxngen.hpp`. The order of the field names were different
-  between files. This caused a compiler error when calling the constructor. To
-  fix this, I re-ordered the messageT field names in `telem_fxngen.hpp` to match
-  `telem_fxngen.fbs`.
+  appear MUST correspond between the two files. 
+
 
 - This script detects a 'base' type if it does not have eventCode and
   defaultLevel in the .hpp file. It is noted in these log types that they cannot
@@ -67,43 +67,13 @@ Makefile.
     - string_log
     - saving_state_change (not explicitly noted, but inferred)
 
-  It is assumed that these base types do not require tests.
+  It is assumed that these base types do not explicitly require tests, but will be tested through their children types.
 
 - Tables can be nested in the root-type table in .fbs files. However, the
   sub-tables must be must be defined before the _fb table definition. See
   telem_stdcam.fbs for a working example. It is expected that the title of the
-  root-type table ends with '_fb'.
+  root-type table has the suffix '_fb'.
 
-- `telem_stage`: the field 'preset' is a double in telem_stage.hpp but a float in
-  telem_stage.fbs. This caused a test to fail due to a loss of precision. One
-  option is to generate the test value giving priority to the schema type.
-  Another option is to make sure the two types always match.
+- The `generated_tests` folder will be deleted with `make really_clean`.
 
-- generated tests folder will be deleted with `make really_clean`
 
-- Tests not being generated:
-    1. `software_log.hpp`: The field names are different between the .fbs file
-      and .hpp file. This is the case for many another log types and handled by
-      the generator, but is an issue here because they are several different
-      'messageT's within software_log, with different subsets of the fields.
-      Because their names are different, the script does not have a way to tell
-      when a field is being used or not being used. One option is to only
-      produce tests for messageT's which have the same number of fields as the
-      table in the .fbs file. This means not all the messageT's in software_log
-      would have tests. Note that this change would apply to all other log
-      types. For example, telem_stdcam has a similar situation, but it is not an
-      issue because the subset of fields do not change the order of types the
-      fields appear in. Another option is to have the names between the schema
-      and the hpp file match. This will require added functionality to the
-      script.
-
-    2. `telem_fxngen.hpp`: fields `C1wvtp` and `C2wvtp` are uint8s in the fb,
-       but strings in the .hpp file. In the generated test, the different types
-       causes a compiler error. 
-
-- Added #include "../logMeta.hpp" in order to compile:
-    - telem_observer.hpp
-    - telem_loopgain.hpp
-    - telem_fgtimings.hpp
-    - telem_dmspeck.hpp
-    - telem_dmmodes.hpp 

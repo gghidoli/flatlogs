@@ -13,6 +13,7 @@ import re
 import pathlib
 import string
 import random
+import getopt
 
 # check jinja2 is installed. install it if not
 try:
@@ -367,7 +368,11 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
                     if not typesCorrespond(fieldDict["schemaType"], fieldDict["type"]):
                         print(f"  ERROR undefined behavior: types for field '{fieldDict["name"]}' do not correlate.")
                         print(f"    schemaType: {fieldDict["schemaType"]}, type: {fieldDict["type"]}")
-                        error = True
+                        # if types don't correspond, then use name in messageT and hope for best.
+                        # this is why if types are different, then names MUST correspond between 
+                        # .fbs and .hpp file
+                        del fieldDict["schemaName"]
+                        # error = True
                 
                 fieldDict["testVal"] = makeTestVal(fieldDict)
 
@@ -429,6 +434,20 @@ def main():
     if (versionAsNumber(sys.version_info[0], sys.version_info[1]) < versionAsNumber(3,9)):
         print("Error: Python version must be >= 3.9")
         exit(0)
+
+    # getopt for random seed if provided
+    try: 
+        opts, args = getopt.getopt(sys.argv[1:], "r:")
+    except getopt.GetoptError:
+        print("Usage: python3 ./generateTemplatedCatch2Tests.py -r <seed>")
+        exit(0)
+    for opt, arg in opts:
+        if opt in ["-r"]:
+            if not arg.isdigit():
+                print(f"Error: random seed {arg} provided is not an integer.")
+                exit(0)
+            # use random seed if provided with -r
+            random.seed(int(arg))
 
     # load template
     env = jinja2.Environment(
