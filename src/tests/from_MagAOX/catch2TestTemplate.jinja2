@@ -95,7 +95,7 @@ public:
     {% elif 'std::string' in field.type %}
     m_{{field.name}} = std::string(MagAOX::logger::Get{{fbName}}(buffPtr)->{{getter}}()->c_str());
     {% elif 'char *' in field.type %}
-    size_t {{field.name}}StrLen = strlen(MagAOX::logger::Get{{fbName}}(buffPtr)->{{getter}}()->c_str());
+    size_t {{field.name}}StrLen = strlen(MagAOX::logger::Get{{fbName}}(buffPtr)->{{getter}}()->c_str()) + 1;
     m_{{field.name}} = (char *) malloc({{field.name}}StrLen);
     strncpy(m_{{field.name}}, MagAOX::logger::Get{{fbName}}(buffPtr)->{{getter}}()->c_str(), {{field.name}}StrLen);
     {% else %}

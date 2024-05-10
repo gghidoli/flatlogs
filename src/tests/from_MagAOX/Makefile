@@ -2,9 +2,8 @@
 ### Hide commands
 AT=@
 GEN_TEST_FILES = generated_tests/*_generated_tests.cpp
-
+# GEN_TEST_FILES = generated_tests/software_log_generated_tests.cpp
 # STILL TODO
-# generated_tests/telem_fxngen_generated_tests.cpp \
 # generated_tests/software_log_generated_tests.cpp
 
 ########################################################################
@@ -44,5 +43,5 @@ do_test: do_tests
 clean:
 	$(AT)$(RM) -R "./types/generated/" "./generated/" ./do_tests Schemata_test catch2_tests
 
-really_clean:
-	$(AT)$(RM) -R "./types/generated/" "./generated/" "./generated_tests/" ./do_tests Schemata_test catch2_tests
+really_clean: clean 
+	$(AT)$(RM) -R "./generated_tests/"
