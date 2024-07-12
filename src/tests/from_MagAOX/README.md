@@ -47,10 +47,15 @@ Makefile.
 
 - At the start of the python script, the previous generated test files will be
   deleted. Because random values are used for test values, the values
-  will change between runs of the generator. Alternatively, a random seed can be provided as a command line option with `-r`. For example:
+  will change between runs of the generator. A random seed can be provided as a command line option with `-s`. For example:
 
-  `python3 ./generateTemplatedCatch2Tests.py -r 123`
+  `python3 ./generateTemplatedCatch2Tests.py -s <seed>`
 
+  To have incrementing test values, use the `-i` option:
+
+  `python3 ./generateTemplatedCatch2Tests.py -i`
+
+  If no option is provided, the generator defaults to randomly generated values.
 
 - To handle subtle differences in field names in the .fbs and .hpp files, the
   generator reads both .fbs file names and .hpp names and uses the correct name
@@ -76,4 +81,9 @@ Makefile.
 
 - The `generated_tests` folder will be deleted with `make really_clean`.
 
+- If field types of the .fbs file and the .hpp file don't match exactly, then
+  the generator will use the .hpp field names in the generator. This is only
+  used for software_log, because the amount of fields vary. In other words, if
+  the amount of fields is different between the .fbs and .hpp file, the field
+  names MUST match.
 

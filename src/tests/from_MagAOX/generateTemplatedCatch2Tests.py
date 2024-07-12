@@ -15,6 +15,21 @@ import string
 import random
 import getopt
 
+
+gNextVals = {    
+    "string" : 0,
+    "int64"  : 0, 
+    "uint64" : 0,
+    "int32"  : 0, 
+    "uint32" : 0, 
+    "int16"  : 0, 
+    "uint16" : 0,
+    "int8"   : 0, 
+    "uint8"  : 0,
+    "float"  : 0,
+    "double" : 0
+}
+
 # check jinja2 is installed. install it if not
 try:
     import jinja2
@@ -32,10 +47,11 @@ def getBaseType(lines : list) -> str:
     # use regex to find #include "<baseType>.hpp"
     baseType = ""
     for line in lines:
-        match = re.search(r'^#include "[a-z_]*\.hpp"$', line)
+        match = re.search(r'^struct [a-z_]* : public [a-z_]*', line)
         if match != None:
-            baseType = line.strip().split()
-            baseType = line.strip().split('"')[1].split(".")[0]
+            baseType = line.strip().split()[-1]
+            baseType = baseType.split("<")[0]
+
     return baseType
 
 
@@ -163,6 +179,7 @@ def isValidLogType(lines : list) -> bool:
 def makeTestInfoDict(hppFname : str, baseTypesDict : dict) -> dict:
     returnInfo = dict()
     headerFile = open(hppFname,"r")
+    headerLines = headerFile.readlines()
 
     # add name of test/file/type to be generated
     fNameParts = hppFname.split("/")
@@ -171,10 +188,9 @@ def makeTestInfoDict(hppFname : str, baseTypesDict : dict) -> dict:
     returnInfo["genTestFname"] = f"{returnInfo['name']}_generated_tests.cpp"
     returnInfo["className"] = "C" + "".join([word.capitalize() for word in returnInfo["name"].split("_")])
     returnInfo["classVarName"] = "".join([word[0].lower() for word in returnInfo["name"].split("_")])
-    returnInfo["baseType"] = "flatbuffer_log" # the default
+    returnInfo["baseType"] = getBaseType(headerLines)
     returnInfo["hasGeneratedHfile"] = hasGeneratedHFile(returnInfo["name"])
 
-    headerLines = headerFile.readlines()
 
     # cannot generate tests from this file alone, need base type
     if not isValidLogType(headerLines):
@@ -193,20 +209,16 @@ def makeTestInfoDict(hppFname : str, baseTypesDict : dict) -> dict:
 
     # handle log types that inherit from base types
     if len(messageStructIdxs) == 0:
-        # get base type
-        baseType = getBaseType(headerLines)
 
-        if baseType not in baseTypesDict:
-            baseTypesDict[baseType] = set()
+        if returnInfo["baseType"] not in baseTypesDict:
+            baseTypesDict[returnInfo["baseType"]] = set()
 
         # add inhertied type to dict where val is the base type it inherits from
-        baseTypesDict[baseType].add(returnInfo["name"])
+        baseTypesDict[returnInfo["baseType"]].add(returnInfo["name"])
         return None # don't render me yet!
 
 
-    returnInfo["messageTypes"], error = getMessageFieldInfo(messageStructIdxs, headerLines, schemaFieldInfo)
-    if error:
-        return None # error, don't render
+    returnInfo["messageTypes"] = getMessageFieldInfo(messageStructIdxs, headerLines, schemaFieldInfo)
     
     return returnInfo
 
@@ -245,34 +257,86 @@ def hasGeneratedHFile(logName : str) -> bool:
 
     return False
 
+def getIntSize(type : str) -> int:
+    intSizeBits = 32 # default size 32 bits
+    if "_t" in type:
+        typeParts = type.split("_t")
+        intSizeBits = int(typeParts[0][-1]) if (int(typeParts[0][-1]) == 8) \
+                    else int(typeParts[0][-2:])
+
+    return intSizeBits
+
+
 def getRandInt(type : str) -> int:
     unsigned = True if "uint" in type else False
 
-    sizeBits = 8 # default size 8 bits
-    if "_t" in type:
-        typeParts = type.split("_t")
-        if int(typeParts[0][-1]) != 8:
-            sizeBits = int(typeParts[0][-2])
+    intSizeBits = getIntSize(type)
     
     if not unsigned:
-        sizeBits -= 1
+        intSizeBits -= 1
 
-    max = (2 ** sizeBits) - 1
+    max = (2 ** intSizeBits) - 1
     min = 0 if unsigned else (0 - max - 1)
 
     return random.randint(min, max)
 
-def getRandValFromType(fieldType : str, schemaFieldType = None) -> str:
+def getIncrementingInt(type : str) -> int:
+    intSizeBits = getIntSize(type)
+
+    max = (2 ** intSizeBits) - 1
+
+    if  "int8_t" in type:
+        gNextVals["int8"] =  (gNextVals["int8"]     + 1) % max
+        return gNextVals["int8"]
+    elif   "uint8_t" in type:
+        gNextVals["uint8"] =  (gNextVals["uint8"]   + 1) % max
+        return gNextVals["uint8"]
+    elif  "int16_t" in type:
+        gNextVals["int16"] =  (gNextVals["int16"]   + 1) % max
+        return gNextVals["int16"]
+    elif "uint16_t" in type:
+        gNextVals["uint16"] = (gNextVals["uint16"]  + 1) % max
+        return gNextVals["uint16"]
+    elif  "int32_t" in type:
+        gNextVals["int32"] =  (gNextVals["int32"]   + 1) % max
+        return gNextVals["int32"]
+    elif "uint32_t" in type:
+        gNextVals["uint32"] = (gNextVals["uint32"] + 1) % max
+        return gNextVals["uint32"]
+    elif  "int64_t" in type:   
+        gNextVals["int64"] =  (gNextVals["int64"]  + 1) % max
+        return gNextVals["int64"]
+    elif "uint64_t" in type:
+        gNextVals["uint64"] = (gNextVals["uint64"] + 1) % max
+        return gNextVals["uint64"]
+    else:
+        gNextVals["int32"] =  (gNextVals["int32"]  + 1) % max
+        return gNextVals["int32"]
+
+def getTestValFromType(fieldType : str, schemaFieldType = None) -> str:
     if "bool" in fieldType or (schemaFieldType is not None and "bool" in schemaFieldType):
         return "1"
     elif "string" in fieldType or "char *" in fieldType:
+        if gIncrementingVals:
+            gNextVals["string"] += 1
+            return f'"{gNextVals["string"]}"'
         randString = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
         return f'"{randString}"'
     elif "int" in fieldType:
-        return str(getRandInt(fieldType))
+        if gIncrementingVals:
+            return str(getIncrementingInt(fieldType))
+        # need 'u' suffix for randomly generated uint64_t to avoid:
+        # "warning: integer constant is so large that it is unsigned"
+        return f'{str(getRandInt(fieldType))}u' if "uint64_t" in fieldType else str(getRandInt(fieldType)) 
     elif "float" in fieldType:
+        if gIncrementingVals:
+            gNextVals["float"] += 1
+            return str(round( (gNextVals["float"] / 100000), 6))
         return str(round(random.random(), 6))
     elif "double" in fieldType:
+        if gIncrementingVals:
+            gNextVals["double"] += 1
+            return str(round( (gNextVals["double"] / 10000000000), 14))
         return str(round(random.random(), 14))
     else:
         return "{}"
@@ -280,13 +344,13 @@ def getRandValFromType(fieldType : str, schemaFieldType = None) -> str:
 
 def makeTestVal(fieldDict : dict) -> str:
     if "vector" in fieldDict["type"]:
-        vals = [ getRandValFromType(fieldDict["vectorType"]) for i in range(10)]
+        vals = [ getTestValFromType(fieldDict["vectorType"]) for i in range(10)]
         return f"{{ {",".join(vals)} }}"
 
     if "schemaType" in fieldDict:
-        return getRandValFromType(fieldDict["type"], fieldDict["schemaType"])
+        return getTestValFromType(fieldDict["type"], fieldDict["schemaType"])
     
-    return getRandValFromType(fieldDict["type"])
+    return getTestValFromType(fieldDict["type"])
     
 
 
@@ -297,7 +361,6 @@ the type(s) and name(s) of field(s) in a message:
 '''
 def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo : tuple):
     msgTypesList = []
-    error = False
     subTableDictIndex = 0
 
     # extract log field types and names
@@ -366,13 +429,10 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
                     
                     # check schemaType correlates to type in .hpp file
                     if not typesCorrespond(fieldDict["schemaType"], fieldDict["type"]):
-                        print(f"  ERROR undefined behavior: types for field '{fieldDict["name"]}' do not correlate.")
-                        print(f"    schemaType: {fieldDict["schemaType"]}, type: {fieldDict["type"]}")
                         # if types don't correspond, then use name in messageT and hope for best.
                         # this is why if types are different, then names MUST correspond between 
                         # .fbs and .hpp file
                         del fieldDict["schemaName"]
-                        # error = True
                 
                 fieldDict["testVal"] = makeTestVal(fieldDict)
 
@@ -389,7 +449,7 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
         #     continue
         msgTypesList.append(msgsFieldsList)
 
-    return msgTypesList, error
+    return msgTypesList
 
 def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : str) -> dict:
     returnInfo = dict()
@@ -418,10 +478,8 @@ def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : s
     schemaTableName, schemaFieldInfo = getSchemaFieldInfo(baseName)
 
     returnInfo["schemaTableName"] = schemaTableName
-    msgFieldInfo, error = getMessageFieldInfo(messageStructIdxs, baseHLines, schemaFieldInfo)
-    if error:
-        return None # error, don't render
-    
+    msgFieldInfo = getMessageFieldInfo(messageStructIdxs, baseHLines, schemaFieldInfo)
+
     returnInfo["messageTypes"] = [[]] if "empty_log" in baseName else msgFieldInfo
 
     return returnInfo
@@ -435,20 +493,30 @@ def main():
         print("Error: Python version must be >= 3.9")
         exit(0)
 
-    # getopt for random seed if provided
+    
+    global gIncrementingVals
+    gIncrementingVals = False
+
+    # getopt for random seed or incrementing vals
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "r:")
+        opts, args = getopt.getopt(sys.argv[1:], "is:")
+        if len(opts) > 1:
+            print("Error: Only one option allowed. -s <seed> or -i for incrementing values.")
+            exit(0)
+
     except getopt.GetoptError:
-        print("Usage: python3 ./generateTemplatedCatch2Tests.py -r <seed>")
+        print("Usage: python3 ./generateTemplatedCatch2Tests.py -s <seed> | -i")
         exit(0)
     for opt, arg in opts:
-        if opt in ["-r"]:
+        if opt in ["-s"]:
             if not arg.isdigit():
                 print(f"Error: random seed {arg} provided is not an integer.")
                 exit(0)
-            # use random seed if provided with -r
+            # use random seed if provided with -s
             random.seed(int(arg))
-
+        if opt in ["-i"]:
+            gIncrementingVals = True
+    
     # load template
     env = jinja2.Environment(
         loader = jinja2.FileSystemLoader(searchpath="./")

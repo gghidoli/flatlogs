@@ -125,9 +125,15 @@ public:
 
     // N.G. allocates space and writes pointer value to logBuffer
     flatlogs::bufferPtrT logBuffer;
+    {% if 'software_log' in name %}
+    flatlogs::logHeader::createLog<MagAOX::logger::software_notice>(logBuffer
+                                                             , tsx, msg
+                                                             , prio);
+    {% else %}
     flatlogs::logHeader::createLog<MagAOX::logger::{{name}}>(logBuffer
                                                              , tsx, msg
                                                              , prio);
+    {% endif %}
     // Run full log through flatbuffer Verifier
     return MagAOX::logger::{{name}}::verify(logBuffer,L);
   }
