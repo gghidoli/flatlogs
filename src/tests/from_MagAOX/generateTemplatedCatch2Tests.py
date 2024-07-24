@@ -184,7 +184,7 @@ def makeTestInfoDict(hppFname : str, baseTypesDict : dict) -> dict:
     # add name of test/file/type to be generated
     fNameParts = hppFname.split("/")
     returnInfo["name"] = fNameParts[-1].strip().split(".")[0]
-    print(f"LOGNAME: {returnInfo["name"]}")
+    # print(f"LOGNAME: {returnInfo["name"]}")
     returnInfo["genTestFname"] = f"{returnInfo['name']}_generated_tests.cpp"
     returnInfo["className"] = "C" + "".join([word.capitalize() for word in returnInfo["name"].split("_")])
     returnInfo["classVarName"] = "".join([word[0].lower() for word in returnInfo["name"].split("_")])
@@ -440,13 +440,7 @@ def getMessageFieldInfo(messageStructIdxs: list, lines : list, schemaFieldInfo :
                 msgsFieldsList.append(fieldDict)
 
             structIdx += 1
-            
-        # if fieldCount != len(schemaFieldInfo):
-        #     # don't add cases where field count != schema field count
-        #     # only an issue for software_log, not an issue for telem_stdcam
-        #     # print(f"fieldCount={fieldCount} len(schemaFieldInfo)={len(schemaFieldInfo)}")
-        #     # print("HERE")
-        #     continue
+
         msgTypesList.append(msgsFieldsList)
 
     return msgTypesList
@@ -458,7 +452,7 @@ def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : s
     baseHFile = open(baseFilePath,"r")
 
     # add name of test/file/type to be generated
-    print(f"LOGNAME: {logName}")
+    # print(f"LOGNAME: {logName}")
     returnInfo["name"] = logName
     returnInfo["genTestFname"] = f"{returnInfo['name']}_generated_tests.cpp"
     returnInfo["className"] = "".join([word[0].upper() for word in returnInfo["name"].split("_")]) + "_Class"

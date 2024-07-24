@@ -23,7 +23,7 @@ generated/binarySchemata.inc: types/*.hpp types/schemas/*.fbs
 generated_tests: $(GEN_TEST_FILES)
 
 $(GEN_TEST_FILES) :
-	python3 generateTemplatedCatch2Tests.py
+	@python3 generateTemplatedCatch2Tests.py
 
 catch2_tests: generated/binarySchemata.inc $(GEN_TEST_FILES) catch2_tests.cpp
 	$(AT)g++ -std=c++14 -I. -I../../../include $(GEN_TEST_FILES) catch2_tests.cpp -o $@

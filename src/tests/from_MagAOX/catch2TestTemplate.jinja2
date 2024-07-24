@@ -160,10 +160,6 @@ SCENARIO( "Create {{name}} {{outerLoopI}}", "[a log item]")
             {% for field in msgType %}
             {% if 'char *' in field.type %}
             REQUIRE(strcmp({{classVarName}}.m_{{field.name}}, {{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}}) == 0);
-            {% elif 'float' in field.type and 'vector' not in field.type %}
-            REQUIRE_THAT({{classVarName}}.m_{{field.name}}, Catch::Matchers::WithinAbs({{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}}, 0.00001));
-            {% elif 'double' in field.type and 'vector' not in field.type %}
-            REQUIRE_THAT({{classVarName}}.m_{{field.name}}, Catch::Matchers::WithinAbs({{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}}, 0.0000000000001));
             {% else %}
             REQUIRE({{classVarName}}.m_{{field.name}} == {{classVarName}}{{UPPER_FIRST_CHAR(field.name)}}_{{outerLoopI}});
             {% endif %}
