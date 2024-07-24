@@ -29,6 +29,7 @@ gNextVals = {
     "float"  : 0,
     "double" : 0
 }
+gIncrementingVals = False
 
 # check jinja2 is installed. install it if not
 try:
@@ -184,6 +185,8 @@ def makeTestInfoDict(hppFname : str, baseTypesDict : dict) -> dict:
     # add name of test/file/type to be generated
     fNameParts = hppFname.split("/")
     returnInfo["name"] = fNameParts[-1].strip().split(".")[0]
+    CamelCase = "".join([word.capitalize() for word in returnInfo["name"].split("_")])
+    returnInfo["nameCamelCase"] = CamelCase[0].lower() + CamelCase[1:]
     # print(f"LOGNAME: {returnInfo["name"]}")
     returnInfo["genTestFname"] = f"{returnInfo['name']}_generated_tests.cpp"
     returnInfo["className"] = "C" + "".join([word.capitalize() for word in returnInfo["name"].split("_")])
@@ -455,8 +458,10 @@ def makeInheritedTypeInfoDict(typesFolderPath : str, baseName : str, logName : s
     # print(f"LOGNAME: {logName}")
     returnInfo["name"] = logName
     returnInfo["genTestFname"] = f"{returnInfo['name']}_generated_tests.cpp"
-    returnInfo["className"] = "".join([word[0].upper() for word in returnInfo["name"].split("_")]) + "_Class"
-    returnInfo["classVarName"] = returnInfo["className"].split("_")[0].lower()
+    returnInfo["className"] = "C" + "".join([word.capitalize() for word in returnInfo["name"].split("_")])
+    CamelCase = "".join([word.capitalize() for word in returnInfo["name"].split("_")])
+    returnInfo["nameCamelCase"] = CamelCase[0].lower() + CamelCase[1:]
+    returnInfo["classVarName"] = "".join([word[0].lower() for word in returnInfo["name"].split("_")])
     returnInfo["baseType"] = baseName
     returnInfo["hasGeneratedHfile"] = hasGeneratedHFile(logName)
 
