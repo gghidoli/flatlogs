@@ -2,9 +2,13 @@
 ### Hide commands
 AT=@
 GEN_TEST_FILES = generated_tests/*_generated_tests.cpp
-# GEN_TEST_FILES = generated_tests/software_log_generated_tests.cpp
-# STILL TODO
-# generated_tests/software_log_generated_tests.cpp
+### default entropy test settings
+# seed
+s=1
+# entropy level
+e=1
+# number of flatlog types to use
+n=2
 
 ########################################################################
 ### Generate code, run tests
@@ -23,13 +27,22 @@ generated/binarySchemata.inc: types/*.hpp types/schemas/*.fbs
 generated_tests: $(GEN_TEST_FILES)
 
 $(GEN_TEST_FILES) :
-	@python3 generateTemplatedCatch2Tests.py
+	$(AT)python3 generateTemplatedCatch2Tests.py
 
 catch2_tests: generated/binarySchemata.inc $(GEN_TEST_FILES) catch2_tests.cpp
 	$(AT)g++ -std=c++14 -I. -I../../../include $(GEN_TEST_FILES) catch2_tests.cpp -o $@
 
 do_catch2_test: catch2_tests
 	$(AT)./catch2_tests
+
+########################################################################
+### Build and run Catch2 Entropy tests
+entropy_test: generated/binarySchemata.inc catch2_tests.cpp 
+	$(AT)python3 ./generateEntropyTests.py -e $(e) -n $(n) -s $(s)
+	$(AT)g++ -std=c++14 -I. -I../../../include -I./generated_tests gen_entropy_tests/generated_test_e$(e)_n$(n).cpp catch2_tests.cpp -o generated_entropy_test_e$(e)_n$(n)
+
+do_entropy_test: entropy_test
+	$(AT)./generated_entropy_test_e$(e)_n$(n) "Scenario: test_e$(e)_n$(n)"
 
 ########################################################################
 ### Build and run non-Catch2 test (will probably remove at some point)

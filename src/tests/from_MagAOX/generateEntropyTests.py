@@ -31,13 +31,14 @@ def usage():
 
 def main():
     # default entropy, number of flatlog types, and random seed
+    seed = 1
     entropy = 1
     nTypes = 2
-    seed = 1
+    desiredTypes = []
 
     # get opt -n and -e
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "n:e:s:")
+        opts, args = getopt.getopt(sys.argv[1:], "n:e:s:f:")
     except getopt.GetoptError:
         usage()
 
@@ -58,6 +59,8 @@ def main():
                 exit(0)
             # use random seed if provided with -s
             seed = int(arg)
+        elif opt in ["-f"]:
+            desiredTypes = arg.split(",")
 
     random.seed(seed)
 
@@ -87,6 +90,21 @@ def main():
         print(f"Error: n cannot be larger than amount of types in generated_tests. Retry with n < {len(allTypes)}.")
         exit(0)
     allTypes.sort()
+
+    # use required types
+    if nTypes < len(desiredTypes):
+        print(f"Error: n={nTypes} is less than desired flatlog types: {desiredTypes}. Please select n >= number of desired types.")
+        exit(0)
+    # check desired types are in allTypes
+    for dType in desiredTypes:
+        exists = False
+        for flatlogType in allTypes:
+            if dType in flatlogType:
+                exists = True
+                break
+        if not exists:
+            print(f'''Error: flatlog type {dType} does not have a generated test file in ./generated_tests. Make sure test files have been generated. Cannot proceed with tests.''')
+            exit(0)
 
     testTypes = []
     for i in range(nTypes):
