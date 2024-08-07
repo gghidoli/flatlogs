@@ -36,7 +36,26 @@ def main():
     nTypes = 2
     desiredTypes = []
 
-    # get opt -n and -e
+    # path to .hpp files 
+    typesFolderPath = "./types"
+    typesFolderPath = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), typesFolderPath)
+    )
+    
+    # path to gen tests
+    genTestsFolderPath = "./generated_tests"
+    genTestsFolderPath = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), genTestsFolderPath)
+    )
+
+    # get list of flatlogs for which there are generated_tests
+    allTypes = os.listdir(genTestsFolderPath)
+    if (nTypes > len(allTypes)):
+        print(f"Error: n cannot be larger than amount of types in generated_tests. Retry with n < {len(allTypes)}.")
+        exit(0)
+    allTypes.sort()
+
+    # get opt 
     try: 
         opts, args = getopt.getopt(sys.argv[1:], "n:e:s:f:")
     except getopt.GetoptError:
@@ -60,7 +79,15 @@ def main():
             # use random seed if provided with -s
             seed = int(arg)
         elif opt in ["-f"]:
-            desiredTypes = arg.split(",")
+            if arg.strip() != "":
+                desiredTypes = [f"{x.strip()}_generated_tests.cpp" for x in arg.split(",")]
+
+            # check generated test exists for desired flatlog types
+            for dType in desiredTypes:
+                if dType not in allTypes:
+                    print(f"Error: there is not a generated test type for requested type '{dType[:dType.index("_generated_tests.cpp")]}'")
+                    exit(0)
+
 
     random.seed(seed)
 
@@ -72,49 +99,30 @@ def main():
     env.lstrip_blocks = True
     testTemplate = env.get_template("entropyTestTemplate.jinja2")
 
-    # path to .hpp files 
-    typesFolderPath = "./types"
-    typesFolderPath = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), typesFolderPath)
-    )
-    
-    # path to gen tests
-    genTestsFolderPath = "./generated_tests"
-    genTestsFolderPath = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), genTestsFolderPath)
-    )
 
-    # get list of flatlogs for which there are generated_tests
-    allTypes = os.listdir(genTestsFolderPath)
-    if (nTypes > len(allTypes)):
-        print(f"Error: n cannot be larger than amount of types in generated_tests. Retry with n < {len(allTypes)}.")
-        exit(0)
-    allTypes.sort()
 
     # use required types
     if nTypes < len(desiredTypes):
         print(f"Error: n={nTypes} is less than desired flatlog types: {desiredTypes}. Please select n >= number of desired types.")
         exit(0)
-    # check desired types are in allTypes
-    for dType in desiredTypes:
-        exists = False
-        for flatlogType in allTypes:
-            if dType in flatlogType:
-                exists = True
-                break
-        if not exists:
-            print(f'''Error: flatlog type {dType} does not have a generated test file in ./generated_tests. Make sure test files have been generated. Cannot proceed with tests.''')
-            exit(0)
 
+    # check desired types are in allTypes and add them
     testTypes = []
-    for i in range(nTypes):
+    for dType in desiredTypes:
+        assert(dType in allTypes)  # sanity check, validated before this
+        testTypes.append(dType)
+        allTypes.remove(dType)
+
+    # randomly select remaining nTypes
+    for _ in range(nTypes - len(desiredTypes)):
+
         randomIdx = random.randint(0, len(allTypes) - 1) 
         testTypes.append(allTypes[randomIdx])
+
         del allTypes[randomIdx]
 
 
-
-    # contrust info dictionary for each type
+    # construct info dictionary for each type
     baseTypesDict = dict()
     typesInfoList = []
     for type in testTypes:
@@ -138,15 +146,12 @@ def main():
         assert(info is not None)
         typesInfoList.append(info)
 
-    # TODO NEXT: make big string of const fields & big string of asserts
+    # make big string of const fields & big string of asserts in tandem
     objCount = 0
     objectCtors = []
     testVariables = []
     catchAsserts   = []
     totalFieldCount = 0
-
-    # print(json.dumps(typesInfoList, indent=4))
-
     for _ in range(entropy):
 
         for type in typesInfoList:

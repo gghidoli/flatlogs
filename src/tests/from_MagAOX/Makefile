@@ -9,6 +9,8 @@ s=1
 e=1
 # number of flatlog types to use
 n=2
+# types to use
+f=""
 
 ########################################################################
 ### Generate code, run tests
@@ -38,7 +40,7 @@ do_catch2_test: catch2_tests
 ########################################################################
 ### Build and run Catch2 Entropy tests
 entropy_test: generated/binarySchemata.inc catch2_tests.cpp 
-	$(AT)python3 ./generateEntropyTests.py -e $(e) -n $(n) -s $(s)
+	$(AT)python3 ./generateEntropyTests.py -e $(e) -n $(n) -s $(s) -f $(f)
 	$(AT)g++ -std=c++14 -I. -I../../../include -I./generated_tests gen_entropy_tests/generated_test_e$(e)_n$(n).cpp catch2_tests.cpp -o generated_entropy_test_e$(e)_n$(n)
 
 do_entropy_test: entropy_test
