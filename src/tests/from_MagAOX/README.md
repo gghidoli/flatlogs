@@ -86,7 +86,7 @@ Makefile.
   root-type table has the suffix '_fb'.
 
 - The `generated_tests` folder will be deleted in addition to the default
-  `clean`` target with `make really_clean`.
+  `clean` target with `make really_clean`.
 
 - If field types of the .fbs file and the .hpp file don't match exactly, then
   the generator will use the .hpp field names in the generator. This is only
@@ -107,7 +107,7 @@ The entropy generator is composed of `entropyTestTemplate.jinja2` and
 ## Pre-requisites
 
 The Catch2 Test Generator described above must be run before entropy tests can
-be generated, since they utilize these test files.
+be generated, since entropy tests include these test files.
 
 ## How to Run
 
@@ -117,19 +117,20 @@ makefile target:
 `make do_entropy_test <OPTIONS>`
 
 The generated file is written to
-`gen_entropy_tests/generated_test_e<ENTROPY>_n<NUMBER>.cpp`
+`gen_entropy_tests/generated_test_e<ENTROPY>_n<NTYPES>.cpp`
 
 For example, if e=3 and n=12, the cpp file is titled
 `generated_test_e3_n12.cpp`
 
-and the test executable is `generated_test_e3_n12`
+and the test executable is `generated_test_e3_n12`.
 
 ### Options
 
 - `s` : random seed
-- `n` : number of distinct flatlog types to use
+- `n` : number of distinct flatlog types to use. 
 - `e` : entropy level. The number of total flatlogs that will be tested is e * n
-- `t` : specific types of flatlogs to use in the test
+- `t` : specific types of flatlogs to use, in quotes, comma-separated. The types
+  will be randomly selected if this option is not used.
 
 Note: It is not required to provide these options on the commandline. Their
 default values are stored as variables in the makefile, and can be set there as
@@ -149,9 +150,9 @@ well.
   `gen_entropy_tests/`, the existing file will be overwritten.
 
 - The makefile creates the compiled executable
-  `generated_entropy_test_ee<E>_n<N>`. However, if this file is run as is, it
-  will run all the generated tests it includes, not just the entropy test. In
-  order to run just the entropy test, you must specify the scenario:
+  `generated_entropy_test_e<E>_n<N>`. Because this file includes other Catch2
+  tests, they all will be run when the executable is run. In order to run just
+  the entropy test, you must specify the scenario:
 
   `./generated_entropy_test_e<E>_n<N> "Scenario: test_e<E>_n<N>"`
   
