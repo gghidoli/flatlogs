@@ -207,7 +207,7 @@ def main():
     # make directory if it doesn't exist
     pathlib.Path(outFolderPath).mkdir(exist_ok=True)
 
-    # write out file TODO: move this to a designated folder or something
+    # write out file 
     outFilename = f"generated_test_e{entropy}_n{nTypes}.cpp"
     outPath = os.path.abspath(
         os.path.join(outFolderPath, outFilename)

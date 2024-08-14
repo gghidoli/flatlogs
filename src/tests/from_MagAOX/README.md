@@ -1,7 +1,8 @@
 # Catch2 Test Generator for MagAOX Flatlogs
 
 The test generator is composed of two files, `generateTemplatedCatch2Tests.py`
-and `catch2TestTemplate.jinja2`.
+and `catch2TestTemplate.jinja2`. As a result, Catch2 test files for each flatlog
+type will be created.
 
 Both files should be in the same directory as `types/`.
 
@@ -15,7 +16,8 @@ Both files should be in the same directory as `types/`.
 
     `python3 -m pip install Jinja2`
 
-It is assumed that any libraries and dependencies for the flatlog types have already been installed.
+It is assumed that any libraries and dependencies for the flatlog types have
+already been installed.
 
 ### Generating the tests
 
@@ -46,8 +48,9 @@ Makefile.
 ## Notes/Caveats:
 
 - At the start of the python script, the previous generated test files will be
-  deleted. Because random values are used for test values, the values
-  will change between runs of the generator. A random seed can be provided as a command line option with `-s`. For example:
+  deleted. Because random values are used for test values, the values will
+  change between runs of the generator. A random seed can be provided as a
+  command line option with `-s`. For example:
 
   `python3 ./generateTemplatedCatch2Tests.py -s <seed>`
 
@@ -62,24 +65,28 @@ Makefile.
   when appropriate. The caveat to this is that the order in which those names
   appear MUST correspond between the two files. 
 
-
 - This script detects a 'base' type if it does not have eventCode and
   defaultLevel in the .hpp file. It is noted in these log types that they cannot
   be used directly. The base types found are:
     - empty_log
     - flatbuffer_log
-    - software_log
+    - software_log**
     - string_log
     - saving_state_change (not explicitly noted, but inferred)
 
-  It is assumed that these base types do not explicitly require tests, but will be tested through their children types.
+  It is assumed that these base types do not explicitly require tests, but will
+  be tested through their children types. 
+
+  **software_log is a special case since the base type is contained in the same
+  file as its child types. The template uses LOG_NOTICE for all software logs.
 
 - Tables can be nested in the root-type table in .fbs files. However, the
   sub-tables must be must be defined before the _fb table definition. See
   telem_stdcam.fbs for a working example. It is expected that the title of the
   root-type table has the suffix '_fb'.
 
-- The `generated_tests` folder will be deleted with `make really_clean`.
+- The `generated_tests` folder will be deleted in addition to the default
+  `clean`` target with `make really_clean`.
 
 - If field types of the .fbs file and the .hpp file don't match exactly, then
   the generator will use the .hpp field names in the generator. This is only
@@ -87,3 +94,60 @@ Makefile.
   the amount of fields is different between the .fbs and .hpp file, the field
   names MUST match.
 
+# Entropy Test Generator
+
+In order to test flatlogs further, 'entropy' tests can be generated. These tests
+consist of a number of flatlogs being created with random values, and then each
+field is verified one-by-one.
+
+## Pre-requisites
+
+The Catch2 Test Generator described above must be run before entropy tests can
+be generated, since they utilize these test files.
+
+## How to Run
+
+The easiest way to generate, compile, and run the entropy test is through the
+makefile target:
+
+`make do_entropy_test <OPTIONS>`
+
+The generated file is written to
+`./gen_entropy_tests/generated_test_e<ENTROPY>_n<NUMBER>.cpp`
+
+For example, if e=3 and n=12, the cpp file is titled
+`generated_test_e3_n12.cpp`
+
+and the test executable is `./generated_test_e3_n12`
+
+### Options
+
+- `s` : random seed
+- `n` : number of distinct flatlog types to use
+- `e` : entropy level. The number of total flatlogs that will be tested is e * n
+- `t` : specific types of flatlogs to use in the test
+
+Note: It is not required to provide these options on the commandline. Their
+default values are stored as variables in the makefile, and can be set there as
+well.
+
+#### Example usage
+
+`make do_entropy_test`
+
+`make do_entropy_test s=123 n=25 e=2`
+
+`make do_entropy_test n=5 e=5 t="config_log, git_state"`
+
+
+## Notes/Caveats
+- If a test is generated with options `e` and `n`that already exist in
+  `gen_entropy_tests/`, the existing file will be overwritten.
+
+- The makefile creates the compiled executable
+  `generated_entropy_test_ee<E>_n<N>`. However, if this file is run as is, it
+  will run all the generated tests it includes, not just the entropy test. In
+  order to run just the entropy test, you must specify the scenario:
+
+  `./generated_entropy_test_e<E>_n<N> "Scenario: test_e<E>_n<N>"`
+  
