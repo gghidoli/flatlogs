@@ -61,9 +61,9 @@ Makefile.
   If no option is provided, the generator defaults to randomly generated values.
 
 - To handle subtle differences in field names in the .fbs and .hpp files, the
-  generator reads both .fbs file names and .hpp names and uses the correct name
-  when appropriate. The caveat to this is that the order in which those names
-  appear MUST correspond between the two files. 
+  generator reads field names from both .fbs and .hpp names and uses the correct
+  name when appropriate. The caveat to this is that the order in which those
+  names appear MUST correspond between the two files. 
 
 - This script detects a 'base' type if it does not have eventCode and
   defaultLevel in the .hpp file. It is noted in these log types that they cannot
