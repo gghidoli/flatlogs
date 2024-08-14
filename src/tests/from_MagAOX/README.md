@@ -1,7 +1,7 @@
 # Catch2 Test Generator for MagAOX Flatlogs
 
 The test generator is composed of two files, `generateTemplatedCatch2Tests.py`
-and `catch2TestTemplate.jinja2`. As a result, Catch2 test files for each flatlog
+and `catch2TestTemplate.jinja2`. When run, Catch2 test files for each flatlog
 type will be created.
 
 Both files should be in the same directory as `types/`.
@@ -100,6 +100,10 @@ In order to test flatlogs further, 'entropy' tests can be generated. These tests
 consist of a number of flatlogs being created with random values, and then each
 field is verified one-by-one.
 
+The entropy generator is composed of `entropyTestTemplate.jinja2` and
+`generateEntropyTests.py`. Both files should be in the same directory as
+`types/`.
+
 ## Pre-requisites
 
 The Catch2 Test Generator described above must be run before entropy tests can
@@ -113,12 +117,12 @@ makefile target:
 `make do_entropy_test <OPTIONS>`
 
 The generated file is written to
-`./gen_entropy_tests/generated_test_e<ENTROPY>_n<NUMBER>.cpp`
+`gen_entropy_tests/generated_test_e<ENTROPY>_n<NUMBER>.cpp`
 
 For example, if e=3 and n=12, the cpp file is titled
 `generated_test_e3_n12.cpp`
 
-and the test executable is `./generated_test_e3_n12`
+and the test executable is `generated_test_e3_n12`
 
 ### Options
 
