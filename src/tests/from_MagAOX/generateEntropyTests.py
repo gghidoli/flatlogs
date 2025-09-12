@@ -26,7 +26,11 @@ except ModuleNotFoundError:
 
 
 def usage():
-    print("Usage: python3 ./generateEntropyTests.py -n <number of types> -e <entropy>")
+    print("Usage: python3 ./generateEntropyTests.py\n" + 
+          "-n <number of types>\n" + 
+          "-e <entropy>\n" + 
+          "-s <random seed>\n" + 
+          "-f <flatlog types to use>")
     exit(0)
 
 def main():
@@ -187,11 +191,14 @@ def main():
     
     jinjaDict = dict()
     jinjaDict["types"]         = typesInfoList
-    jinjaDict["nTypes"]        = nTypes
-    jinjaDict["entropy"]       = entropy
+    jinjaDict["seedOpt"]       = seed
+    jinjaDict["dTypesOpt"]     = desiredTypes
+    jinjaDict["nTypesOpt"]     = nTypes
+    jinjaDict["entropyOpt"]    = entropy
     jinjaDict["objectCtors"]   = objectCtors
     jinjaDict["catchAsserts"]  = catchAsserts
     jinjaDict["testVariables"] = testVariables
+    
 
     # print(json.dumps(jinjaDict, indent=4))
 

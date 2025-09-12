@@ -6,8 +6,10 @@
 {% endfor %}
 #include "types/flatbuffer_log.hpp"
 
-/*
- * GENERATED ENTROPY TEST FILE including types:
+/* GENERATED ENTROPY TEST FILE 
+ * s={{seedOpt}} n={{nTypesOpt}} e={{entropyOpt}} t={{dTypesOpt}}
+ *
+ * including types:
  {% for type in types %}
  *  - {{type.name}}
  {% endfor %}
@@ -22,9 +24,9 @@
  {% endfor %}
 
 
-SCENARIO( "test_e{{entropy}}_n{{nTypes}}", "[]")
+SCENARIO( "test_e{{entropyOpt}}_n{{nTypesOpt}}", "[]")
 {
-    GIVEN("a entropy={{entropy}} and nTypes={{nTypes}}")
+    GIVEN("a entropy={{entropyOpt}} and nTypes={{nTypesOpt}}")
     {
         WHEN("random values for fields")
         {
